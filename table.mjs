@@ -1,7 +1,11 @@
 import pg from 'pg';
 import {users} from './users.mjs'
-import express from 'express'
+import express, { response } from 'express'
 import * as dotenv from 'dotenv'
+import bodyParser from "body-parser";
+
+const jsonParser = bodyParser.json()
+
 dotenv.config()
 
 const app = express()
@@ -37,7 +41,7 @@ client.connect((err) => {
     .query(text)
     .then (() =>
     users.forEach(user => {
-        let text='INSERT INTO usertest(first_name,Last_name,email,ip) VALUES($1,$2,$3,$4)'
+        let text='INSERT INTO usertest(first_name,Last_name,email,ip) VALUES($1,$2,$3,$4)RETURNING *'
         let values = [user.firstName, user.lastName, user.email, user.ip]
         client.query(text,values, (err, res) => {
             if (err) {
@@ -46,7 +50,7 @@ client.connect((err) => {
               console.log(res.rows[0])
               
  }          
-    
+   
 })}))
  .then(() => client.query("select DISTINCT * from usertest"))
  .then((results) => console.table(results.rows))
@@ -65,7 +69,7 @@ app.get('/user/:id', (request, response) => {
   response.json(note)
 })
 app.use(express.json())
-app.post("/user", (req, res) => {
+app.post("/user",  jsonParser, (req, res) => {
   const { id, firstName, lastName, email, ip } = req.body;
 
   users.push({
@@ -79,7 +83,7 @@ app.post("/user", (req, res) => {
   res.send(users);
 });
 
-app.patch("/user/:id", (req, res) => {
+app.patch("/user/:id",  jsonParser, (req, res) => {
   const userId = Number(req.params.id);
   const user = users.find(user =>
       user.id === userId
